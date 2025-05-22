@@ -5,8 +5,8 @@ lockfile==0.12.2
 obd==0.7.3
 Pint==0.24.4
 platformdirs==4.3.8
+pygame==2.6.1
 pyserial==3.5
 python-daemon==3.1.2
 PyYAML==6.0.2
-simpleaudio==1.0.4
 typing_extensions==4.13.2
