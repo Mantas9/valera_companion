@@ -9,9 +9,14 @@ connection = obd.OBD(port, baud) # Auto-Connect to OBD
 # CHANNEL 2
 
 # OBD COMMANDS
-get_rpms = obd.commands.RPM 
-get_oil_temp = obd.commands.OIL_TEMP
+# RPMs
+get_rpms = obd.commands.RPM # Command
+bound_rpms = 2500 # Switch gear sommand 
 
+# Coolant Temperature - Celsius
+get_cool_temp = obd.commands.COOLANT_TEMP
+bound_cool_operating = 70
+bound_cool_overheat = 105
 
 
 while True:

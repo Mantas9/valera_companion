@@ -2186,3 +2186,8 @@ ELM327 OBD-II adapter emulator v3.0.4 started on pseudo-tty port "/dev/pts/1".
 2025-05-21 17:59:17,661  root       terminate       DEBUG    Start termination procedure.
 2025-05-21 17:59:18,762  root       set_defaults    DEBUG    Stopping ECU task "Default ECU Task module", ECU="7E0", method=stop()
 2025-05-21 17:59:18,762  root       terminate       DEBUG    Terminated.
+2025-05-22 12:17:05,558  root       get_pty         DEBUG    Pty name: /dev/pts/4
+2025-05-22 12:17:05,559  root       run             INFO     
+
+ELM327 OBD-II adapter emulator v3.0.4 started on pseudo-tty port "/dev/pts/4".
+
