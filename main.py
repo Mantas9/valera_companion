@@ -6,7 +6,7 @@ port = "/dev/pts/4"
 baud = 9600
 connection = obd.OBD(port, baud) # Auto-Connect to OBD
 
-# CHANNEL 2
+# REAL LIFE OBD USES BLUETOOTH CHANNEL 2!!!
 
 # Get OBD response from specified command
 def get_data(command, include_units: bool = False):
@@ -30,6 +30,9 @@ bound_rpms_redline = 4500 # REDLINING (Volvo s60)
 
 # Speed
 get_speed = obd.commands.SPEED
+speed_last = -1 # Speed last second
+speed_veryfast = 140 # Kerosene on 140 km/h
+
 
 # Throttle position
 get_throttle_pos = obd.commands.THROTTLE_POS
@@ -49,7 +52,15 @@ get_oil_temp = obd.commands.OIL_TEMP
 get_intake_temp = obd.commands.INTAKE_TEMP
 
 # Fuel level
-get_fuel_level = obd.commands.FUEL_LEVEL1
+get_fuel_level = obd.commands.FUEL_LEVEL
+fuel_low = 15 # Percent
+fuel_remind_interval = 1800 # Seconds, 1800s - 30min
+
+# Air flow rate (MAF)
+get_maf = obd.commands.MAF
+
+# Fuel rate
+get_fuel_rate = obd.commands.FUEL_RATE
 
 
 while True:
@@ -60,17 +71,22 @@ while True:
             connection = obd.OBD(port, baud)
         
         # Get responses
-        rpms = get_data(get_rpms, True)
-        speed = get_data(get_speed, True)
-        throttle_pos = get_data(get_throttle_pos, True)
-        engine_load = get_data(get_engine_load, True)
-        coolant_temp = get_data(get_cool_temp, True)
-        oil_temp = get_data(get_oil_temp, True)
-        intake_temp = get_data(get_intake_temp, True)
-        fuel_level = get_data(get_fuel_level, True)
+        rpms = get_data(get_rpms)
+        speed = get_data(get_speed)
+        throttle_pos = get_data(get_throttle_pos)
+        engine_load = get_data(get_engine_load)
+        coolant_temp = get_data(get_cool_temp)
+        oil_temp = get_data(get_oil_temp)
+        intake_temp = get_data(get_intake_temp)
+        fuel_level = get_data(get_fuel_level)
         
         
-        print(rpms, speed, throttle_pos, engine_load, coolant_temp, oil_temp, intake_temp, fuel_level, sep="\n")
+        
+        
+        print(rpms, speed, throttle_pos, engine_load, coolant_temp, oil_temp, intake_temp, fuel_level, speed_last, sep="\n")
+        
+        # Set speed to be last second speed at the end
+        speed_last = float(speed)
 
     except Exception as e:
         print(f"Error: {e}")
