@@ -66,15 +66,17 @@ bounds_fuel_low = 15  # Percent
 # ========== SOUND SETUP
 
 # INIT
-pygame.mixer.init(buffer=8192)
-pygame.mixer.set_num_channels(2)
+pygame.mixer.pre_init(frequency=22050, size=-16, channels=1, buffer=8192)
+pygame.mixer.init()
+pygame.mixer.set_num_channels(8)
 
-# Play a very short silent sound to warm up the audio system
-silent_sound = pygame.mixer.Sound(buffer=b'\x00' * 100)  # Tiny silence
+silent_sound = pygame.mixer.Sound(buffer=b'\x00' * 100)
 silent_sound.play()
-
-# Wait a short moment to let buffer fill
 pygame.time.wait(100)
+
+# CHANNELS
+ch_alert = pygame.mixer.Channel(0)
+ch_ambient = pygame.mixer.Channel(1)
 
 # COOLDOWNS - seconds between playing
 cooldowns = {
@@ -88,10 +90,6 @@ cooldowns = {
 }
 
 last_played = {}
-
-# CHANNELS
-ch_alert = pygame.mixer.Channel(0)
-ch_ambient = pygame.mixer.Channel(1)
 
 # LOAD SOUNDS
 sound_dir = Path("/home/admin/valera_companion/audio")
@@ -118,8 +116,10 @@ def can_play(label):
     return (now - last) >= cooldown
 
 def play_alert(label):
-    if label in sounds:
+    if label in sounds and can_play(label) and not ch_alert.get_busy():
         ch_alert.play(random.choice(sounds[label]))
+        last_played[label] = time.time()
+        print(label)
 
 def play_next_ambient():
     global last_ambient
@@ -172,23 +172,15 @@ while True:
                 
             if not speed_last == None and speed_last - speed >= hard_brake_threshold and can_play("hard_braking"): # Hard braking
                 play_alert("hard_braking")
-                last_played["hard_braking"] = time.time()
-                print("hard_braking")
             elif not speed == None and speed >= speed_record and can_play("speed_record"): # Speed record
                 play_alert("speed_record")
-                last_played["speed_record"] = time.time()
-                print("speed_record")
             elif not rpms == None and rpms >= bound_rpms_redline and can_play("redline"): # Redline
                 play_alert("redline")
-                last_played["redline"] = time.time()
-                print("redline")
                 
             # You can trigger alerts here too
             if not ch_alert.get_busy():
                 if not rpms == None and rpms >= 2200 and coolant_temp < bound_cool_operating and can_play("cold_engine_abuse"): # Revving on cold engine
                     play_alert("cold_engine_abuse")
-                    last_played["cold_engine_abuse"] = time.time()
-                    print("cold_engine_abuse")
               
                 
             # Set speed to be last second speed at the end
