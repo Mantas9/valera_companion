@@ -10,6 +10,7 @@ debug = False
 port = "/dev/rfcomm0"
 baud = 9600
 connection = obd.OBD(port, baud)  # Auto-Connect to OBD
+
 # REAL LIFE OBD USES BLUETOOTH CHANNEL 2!!!
 
 # ========== OBD COMMANDS
@@ -32,7 +33,7 @@ def get_data(command, include_units: bool = False):
 # RPMs
 get_rpms = obd.commands.RPM  # Command
 bound_cold_rpms = 2300
-bound_rpms_redline = 4400  # REDLINING (Volvo s60)
+bound_rpms_redline = 1500  # REDLINING (Volvo s60)
 
 # Speed
 get_speed = obd.commands.SPEED
@@ -65,8 +66,15 @@ bounds_fuel_low = 15  # Percent
 # ========== SOUND SETUP
 
 # INIT
-pygame.mixer.init()
+pygame.mixer.init(buffer=8192)
 pygame.mixer.set_num_channels(2)
+
+# Play a very short silent sound to warm up the audio system
+silent_sound = pygame.mixer.Sound(buffer=b'\x00' * 100)  # Tiny silence
+silent_sound.play()
+
+# Wait a short moment to let buffer fill
+pygame.time.wait(100)
 
 # COOLDOWNS - seconds between playing
 cooldowns = {
@@ -86,7 +94,7 @@ ch_alert = pygame.mixer.Channel(0)
 ch_ambient = pygame.mixer.Channel(1)
 
 # LOAD SOUNDS
-sound_dir = Path("audio")
+sound_dir = Path("/home/admin/valera_companion/audio")
 sounds = {
     "ambient": [pygame.mixer.Sound(str(p)) for p in (sound_dir / "ambient").glob("*.wav")],
     "cold_engine_abuse": [pygame.mixer.Sound(str(p)) for p in (sound_dir / "cold_engine_abuse").glob("*.wav")],
@@ -97,6 +105,8 @@ sounds = {
     "speed_record": [pygame.mixer.Sound(str(p)) for p in (sound_dir / "speed_record").glob("*.wav")],
     "startup": [pygame.mixer.Sound(str(p)) for p in (sound_dir / "startup").glob("*.wav")],
 }
+
+time.sleep(0.5)
 
 # TRACK LAST PLAYED FOR AMBIENT
 last_ambient = None
@@ -122,6 +132,8 @@ def play_next_ambient():
 
 def stop_ambient():
     ch_ambient.stop()
+
+time.sleep(1)
 
 # ========== RUNTIME CODE
 while True:
