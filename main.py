@@ -156,7 +156,8 @@ while True:
         if debug:
             print("RPMS: " + str(rpms),"SPEED: " + str(speed), "THROTTLE POS:", "ENGINE LOAD: " + str(engine_load), "COOLANT TEMP: " + str(coolant_temp), "INTAKE TEMP: " + str(intake_temp), "LAST SPEED: " + str(speed_last), sep="\n")
             print("\n")
-            speed_last = speed.magnitude
+            if not speed == None:
+                speed_last = speed.magnitude
         else:
             # Startup greeting
             if can_play("startup"):
@@ -170,7 +171,7 @@ while True:
             elif not speed == None and speed < speed_crazymode:
                 stop_ambient()
                 
-            if not speed_last == None and speed_last - speed >= hard_brake_threshold and can_play("hard_braking"): # Hard braking
+            if not speed == None and not speed_last == None and speed_last - speed >= hard_brake_threshold and can_play("hard_braking"): # Hard braking
                 play_alert("hard_braking")
             elif not speed == None and speed >= speed_record and can_play("speed_record"): # Speed record
                 play_alert("speed_record")
@@ -184,7 +185,8 @@ while True:
               
                 
             # Set speed to be last second speed at the end
-            speed_last = speed
+            if not speed == None:
+                speed_last = speed
     except Exception as e:
         print(f"Error: {e}")
         connection = obd.OBD(port, baud)
