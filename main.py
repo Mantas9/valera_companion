@@ -92,7 +92,8 @@ cooldowns = {
 last_played = {}
 
 # LOAD SOUNDS
-sound_dir = Path("/home/admin/valera_companion/audio")
+sound_dir = Path("/home/admin/valera_companion/audio") # Pi
+#sound_dir = Path("audio") # PC
 sounds = {
     "ambient": [pygame.mixer.Sound(str(p)) for p in (sound_dir / "ambient").glob("*.wav")],
     "cold_engine_abuse": [pygame.mixer.Sound(str(p)) for p in (sound_dir / "cold_engine_abuse").glob("*.wav")],
@@ -104,8 +105,6 @@ sounds = {
     "startup": [pygame.mixer.Sound(str(p)) for p in (sound_dir / "startup").glob("*.wav")],
 }
 
-time.sleep(0.5)
-
 # TRACK LAST PLAYED FOR AMBIENT
 last_ambient = None
 
@@ -116,10 +115,14 @@ def can_play(label):
     return (now - last) >= cooldown
 
 def play_alert(label):
-    if label in sounds and can_play(label) and not ch_alert.get_busy():
-        ch_alert.play(random.choice(sounds[label]))
-        last_played[label] = time.time()
-        print(label)
+    if label in sounds:
+        if not sounds[label]:
+            print(f"[WARN] No sounds found for label: {label}")
+            return
+        if can_play(label) and not ch_alert.get_busy():
+            ch_alert.play(random.choice(sounds[label]))
+            last_played[label] = time.time()
+            print(label)
 
 def play_next_ambient():
     global last_ambient
@@ -162,8 +165,6 @@ while True:
             # Startup greeting
             if can_play("startup"):
                 play_alert("startup")
-                last_played["startup"] = time.time()
-                print("Connected to OBD")
 
             # Speed mode ambience
             if not speed == None and speed >= speed_crazymode and not ch_ambient.get_busy():
