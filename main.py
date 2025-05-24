@@ -4,8 +4,10 @@ import pygame
 import random
 from pathlib import Path
 
+debug = False
+
 # ========== OBD CONNECTION BASICS
-port = "/dev/pts/4"
+port = "/dev/rfcomm0"
 baud = 9600
 connection = obd.OBD(port, baud)  # Auto-Connect to OBD
 # REAL LIFE OBD USES BLUETOOTH CHANNEL 2!!!
@@ -30,18 +32,18 @@ def get_data(command, include_units: bool = False):
 # RPMs
 get_rpms = obd.commands.RPM  # Command
 bound_cold_rpms = 2300
-bound_rpms_redline = 4500  # REDLINING (Volvo s60)
+bound_rpms_redline = 4400  # REDLINING (Volvo s60)
 
 # Speed
 get_speed = obd.commands.SPEED
 speed_last = -1  # Speed last second
 speed_crazymode = 140  # Kerosene on 140 km/h
-speed_record = 200 # Speed Record LETS GOOO
-hard_brake_threshold = 14 # 20km
+speed_record = 170 # Speed Record LETS GOOO
+hard_brake_threshold = 16 # 20km
 
 # Throttle position
 get_throttle_pos = obd.commands.THROTTLE_POS
-bound_throttle_flooring = 85 # percent
+bound_throttle_flooring = 95 # percent
 
 # Engine load - how hard the engine is working
 get_engine_load = obd.commands.ENGINE_LOAD
@@ -86,7 +88,7 @@ ch_ambient = pygame.mixer.Channel(1)
 # LOAD SOUNDS
 sound_dir = Path("audio")
 sounds = {
-    "ambient_speeding": [pygame.mixer.Sound(str(p)) for p in (sound_dir / "ambient_speeding").glob("*.wav")],
+    "ambient": [pygame.mixer.Sound(str(p)) for p in (sound_dir / "ambient").glob("*.wav")],
     "cold_engine_abuse": [pygame.mixer.Sound(str(p)) for p in (sound_dir / "cold_engine_abuse").glob("*.wav")],
     "floor_gas": [pygame.mixer.Sound(str(p)) for p in (sound_dir / "floor_gas").glob("*.wav")],
     "fuel_low": [pygame.mixer.Sound(str(p)) for p in (sound_dir / "fuel_low").glob("*.wav")],
@@ -123,6 +125,8 @@ def stop_ambient():
 
 # ========== RUNTIME CODE
 while True:
+    
+    speed = 0
     try:
         # Check for connection
         if not connection.is_connected():
@@ -130,63 +134,57 @@ while True:
             connection = obd.OBD(port, baud)
         
         # Get responses
-        rpms = get_data(get_rpms)
-        speed = get_data(get_speed)
-        throttle_pos = get_data(get_throttle_pos)
-        engine_load = get_data(get_engine_load)
-        coolant_temp = get_data(get_cool_temp)
-        #oil_temp = get_data(get_oil_temp)
-        intake_temp = get_data(get_intake_temp)
-        #fuel_level = get_data(get_fuel_level)
-        fuel_level = 100
+        rpms = get_data(get_rpms, debug)
+        speed = get_data(get_speed, debug)
+        engine_load = get_data(get_engine_load, debug)
+        coolant_temp = get_data(get_cool_temp, debug)
+        intake_temp = get_data(get_intake_temp, debug)
+        
 
-        # print(rpms, speed, throttle_pos, engine_load, coolant_temp, oil_temp, intake_temp, fuel_level, speed_last, sep="\n")
-
-        # Startup greeting
-        if can_play("startup"):
-            play_alert("startup")
-            last_played["startup"] = time.time()
-            print("Connected to OBD")
-
-        # Speed mode ambience
-        if speed >= speed_crazymode and not ch_ambient.get_busy():
-            play_next_ambient()
+        if debug:
+            print("RPMS: " + str(rpms),"SPEED: " + str(speed), "THROTTLE POS:", "ENGINE LOAD: " + str(engine_load), "COOLANT TEMP: " + str(coolant_temp), "INTAKE TEMP: " + str(intake_temp), "LAST SPEED: " + str(speed_last), sep="\n")
+            print("\n")
+            speed_last = speed.magnitude
         else:
-            stop_ambient()
-            
-        # You can trigger alerts here too
-        if not ch_alert.get_busy():
-            if speed_last - speed >= hard_brake_threshold and can_play("hard_braking"): # Hard braking
+            # Startup greeting
+            if can_play("startup"):
+                play_alert("startup")
+                last_played["startup"] = time.time()
+                print("Connected to OBD")
+
+            # Speed mode ambience
+            if not speed == None and speed >= speed_crazymode and not ch_ambient.get_busy():
+                play_next_ambient()
+            elif not speed == None and speed < speed_crazymode:
+                stop_ambient()
+                
+            if not speed_last == None and speed_last - speed >= hard_brake_threshold and can_play("hard_braking"): # Hard braking
                 play_alert("hard_braking")
                 last_played["hard_braking"] = time.time()
                 print("hard_braking")
-            elif speed >= speed_record and can_play("speed_record"): # Speed record
+            elif not speed == None and speed >= speed_record and can_play("speed_record"): # Speed record
                 play_alert("speed_record")
                 last_played["speed_record"] = time.time()
                 print("speed_record")
-            elif rpms >= bound_rpms_redline and can_play("redline"): # Redline
+            elif not rpms == None and rpms >= bound_rpms_redline and can_play("redline"): # Redline
                 play_alert("redline")
                 last_played["redline"] = time.time()
                 print("redline")
-            elif rpms >= 2200 and coolant_temp < bound_cool_operating and can_play("cold_engine_abuse"): # Revving on cold engine
-                play_alert("cold_engine_abuse")
-                last_played["cold_engine_abuse"] = time.time()
-                print("cold_engine_abuse")
-            elif throttle_pos >= bound_throttle_flooring and can_play("floor_gas"):
-                play_alert("floor_gas")
-                last_played["floor_gas"] = time.time()
-                print("floor_gas")
-            elif not fuel_level == None and fuel_level <= bounds_fuel_low and can_play():
-                play_alert("fuel_low")
-                last_played["fuel_low"] = time.time()
-                print("fuel_low")
-            
-        # Set speed to be last second speed at the end
-        speed_last = float(speed)
-
+                
+            # You can trigger alerts here too
+            if not ch_alert.get_busy():
+                if not rpms == None and rpms >= 2200 and coolant_temp < bound_cool_operating and can_play("cold_engine_abuse"): # Revving on cold engine
+                    play_alert("cold_engine_abuse")
+                    last_played["cold_engine_abuse"] = time.time()
+                    print("cold_engine_abuse")
+              
+                
+            # Set speed to be last second speed at the end
+            speed_last = speed
     except Exception as e:
         print(f"Error: {e}")
         connection = obd.OBD(port, baud)
 
+    
     # Cycle 1s
     time.sleep(1)
